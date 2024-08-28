@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Drive Folder Preview</title>
+  <style>
+    .file-preview {
+      margin: 10px 0;
+    }
+    .file-preview img, .file-preview iframe {
+      max-width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Drive Folder Preview</h1>
+  <div id="file-previews"></div>
+
+  <script>
+    // Replace with your Google Drive folder ID
+    const FOLDER_ID = '1cNhYkj4jynmc6udgA49BRhuosWjMIvNh';
+
+    function initClient() {
+      gapi.client.init({
+        apiKey: 'AIzaSyA8K3fGnGLxiS0mwv5wpJ8TWJj1Qs22Uw0',
+        clientId: '1016352848197-lci7dh83ppbre7hvmbqskl43m9urq1h3.apps.googleusercontent.com',
+        discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],
+        scope: 'https://www.googleapis.com/auth/drive.readonly'
+      }).then(() => {
+        listFiles();
+      }).catch((error) => {
+        console.error('Error initializing Google API client:', error);
+      });
+    }
+
+    function listFiles() {
+      gapi.auth2.getAuthInstance().signIn().then(() => {
+        gapi.client.drive.files.list({
+          q: `'${FOLDER_ID}' in parents`,
+          fields: 'files(id, name, mimeType)',
+          spaces: 'drive'
+        }).then((response) => {
+          const files = response.result.files;
+          const previewsDiv = document.getElementById('file-previews');
+
+          if (files.length > 0) {
+            files.forEach((file) => {
+              const fileType = file.mimeType;
+              const fileId = file.id;
+              const fileName = file.name;
+              let previewElement;
+
+              if (fileType === 'application/pdf') {
+                previewElement = `<div class="file-preview">
+                                    <h3>${fileName}</h3>
+                                    <iframe src="https://drive.google.com/file/d/${fileId}/preview" width="600" height="800" frameborder="0"></iframe>
+                                  </div>`;
+              } else if (fileType === 'image/jpeg' || fileType === 'image/png') {
+                previewElement = `<div class="file-preview">
+                                    <h3>${fileName}</h3>
+                                    <img src="https://drive.google.com/uc?export=view&id=${fileId}" alt="${fileName}">
+                                  </div>`;
+              }
+
+              if (previewElement) {
+                previewsDiv.innerHTML += previewElement;
+              }
+            });
+          } else {
+            previewsDiv.innerHTML = '<p>No files found.</p>';
+          }
+        }).catch((error) => {
+          console.error('Error fetching files:', error);
+        });
+      }).catch((error) => {
+        console.error('Error signing in:', error);
+      });
+    }
+
+    // Initialize the API client after the page loads
+    window.onload = function() {
+      gapi.load('client:auth2', initClient);
+    };
+  </script>
+
+  <script src="https://apis.google.com/js/api.js"></script>
+</body>
+</html>
